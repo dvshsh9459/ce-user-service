@@ -16,6 +16,7 @@ public class StudentService {
 	@Autowired
 	private StudentRepository studentRepository;
 
+//	STUDENT REGISTERATION
 	public ResponseEntity<UserResponse> StudentRegisteration(StudentRegRequest regRequest) {
 		Student existedStudent = studentRepository.findByEmail(regRequest.getEmail());
 		if (existedStudent != null) {
