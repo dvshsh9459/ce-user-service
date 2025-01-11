@@ -18,7 +18,10 @@ public class StudentService {
 	@Autowired
 	private StudentRepository studentRepository;
 
-	public ResponseEntity<UserResponse> studentRegisteration(StudentRegRequest regRequest) {
+
+
+
+
 		Student existedStudent = studentRepository.findByEmail(regRequest.getEmail());
 		if (existedStudent != null) {
 			return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -27,7 +30,7 @@ public class StudentService {
 		Student student = new Student();
 		student.setEmail(regRequest.getEmail());
 		student.setPassword(regRequest.getPassword());
-		student.setPhoneNo(regRequest.getPhoneNo());
+		student.setContactNo(regRequest.getPhoneNo());
 		studentRepository.save(student);
 		return ResponseEntity.status(HttpStatus.OK)
 				.body(new UserResponse("User Register Successfully ", true, HttpStatus.OK.value()));

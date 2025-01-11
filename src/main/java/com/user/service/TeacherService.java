@@ -9,6 +9,7 @@ import com.user.controller.request.TeacherLoginRequest;
 import com.user.controller.request.TeacherRegisterRequest;
 import com.user.controller.response.UserResponse;
 import com.user.repository.TeacherRepository;
+import com.user.repository.entity.Employee;
 import com.user.repository.entity.Teacher;
 
 @Service
@@ -17,7 +18,7 @@ public class TeacherService {
 	private TeacherRepository repository;
 
 	public ResponseEntity<UserResponse> teacherRegisteration(TeacherRegisterRequest registerRequest) {
-		Teacher existedStudent = repository.findByEmail(registerRequest.getEmail());
+		Employee existedStudent = repository.findByEmail(registerRequest.getEmail());
 		if (existedStudent != null) {
 			return ResponseEntity.status(HttpStatus.CONFLICT)
 					.body(new UserResponse("User Already exists ", false, HttpStatus.CONFLICT.value()));
