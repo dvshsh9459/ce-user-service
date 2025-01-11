@@ -19,7 +19,7 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@DiscriminatorValue("student")
+
 public class Student extends User {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
