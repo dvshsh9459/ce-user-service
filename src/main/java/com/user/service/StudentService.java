@@ -28,7 +28,7 @@ public class StudentService {
 		Student student = new Student();
 		student.setEmail(regRequest.getEmail());
 		student.setPassword(regRequest.getPassword());
-		student.setPhoneNo(regRequest.getPhoneNo());
+		student.setContactNo(regRequest.getPhoneNo());
 		studentRepository.save(student);
 		return ResponseEntity.status(HttpStatus.OK)
 				.body(new UserResponse("User Register Successfully ", true, HttpStatus.OK.value()));
