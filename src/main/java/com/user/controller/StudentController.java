@@ -1,18 +1,23 @@
 package com.user.controller;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.user.controller.request.RemoveStuRequest;
 import com.user.controller.request.StudentLoginRequest;
 import com.user.controller.request.StudentRegRequest;
+import com.user.controller.response.AuthResponse;
 import com.user.controller.response.UserResponse;
+import com.user.repository.entity.Student;
 import com.user.service.StudentService;
-
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 
 @RestController
 @RequestMapping("/student")
@@ -22,13 +27,23 @@ public class StudentController {
 	private StudentService studentService;
 
 	@PostMapping("/registeration")
-	public ResponseEntity<UserResponse> registerStudent(@RequestBody StudentRegRequest regRequest) {
-		return studentService.studentRegisteration(regRequest);
+	public ResponseEntity<UserResponse> registerStudent(@RequestBody StudentRegRequest studentRegRequest) {
+		return studentService.studentRegistration(studentRegRequest);
 	}
 
 	@GetMapping("/login")
-	public ResponseEntity<UserResponse> loginStudent(@RequestBody StudentLoginRequest loginRequest) {
+	public ResponseEntity<AuthResponse> loginStudent(@RequestBody StudentLoginRequest loginRequest) {
 		return studentService.studentLogin(loginRequest);
+	}
+
+	@GetMapping("/getAll")
+	public List<Student> getMethodName() {
+		return studentService.getAllStudents();
+	}
+
+	@DeleteMapping("/remove")
+	public ResponseEntity<UserResponse> removeStudent(@RequestBody RemoveStuRequest removeStuRequest) {
+		return studentService.removeStudent(removeStuRequest);
 	}
 
 }

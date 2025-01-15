@@ -1,20 +1,16 @@
 package com.user.repository.entity;
 
-import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
-import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToMany;
+
 import jakarta.persistence.OneToOne;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Email;
@@ -36,10 +32,10 @@ public class Employee {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private int id;
-	@Email(message="Enter Valid Email")
+	@Email(message = "Enter Valid Email")
 	@NotNull(message = "email cannot be null")
 	private String email;
-	private String name ;
+	private String name;
 	@JsonIgnore
 	@NotEmpty(message = "Passsword Must Not BE Empty")
 	private String password;
@@ -52,8 +48,10 @@ public class Employee {
 	@NotEmpty(message = "Qualification Must Not Be Empty")
 	private String qualification;
 	private double salary;
-	@OneToOne(cascade = CascadeType.PERSIST)
-	private User user ;
-	
+	@OneToOne(cascade = CascadeType.ALL)
+	private User user;
+	@JsonIgnore
+	@Enumerated(EnumType.STRING)
+	private Role role;
 
 }
