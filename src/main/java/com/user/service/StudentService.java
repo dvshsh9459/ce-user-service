@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -16,10 +16,8 @@ import com.user.controller.request.StudentLoginRequest;
 import com.user.controller.request.StudentRegRequest;
 import com.user.controller.response.AuthResponse;
 import com.user.controller.response.UserResponse;
-
 import com.user.repository.StudentRepository;
 import com.user.repository.UserRepository;
-
 import com.user.repository.entity.Role;
 import com.user.repository.entity.Student;
 import com.user.repository.entity.User;
@@ -51,7 +49,7 @@ public class StudentService {
 		user = userRepository.save(user);
 		Student student = Student.builder().email(regRequest.getEmail()).aadharCardNo(regRequest.getAadharCardNo())
 				.contactNo(regRequest.getContactNo()).name(regRequest.getName()).password(regRequest.getPassword())
-				.qualification(regRequest.getQualification()).role(Role.STUDENT).user(user).build();
+				.qualification(regRequest.getQualification()).role(Role.STUDENT).build();
 		System.out.println(student);
 
 		studentRepository.save(student);
@@ -95,5 +93,6 @@ public class StudentService {
 				.body(new UserResponse("Student Removed Successfully", true, HttpStatus.OK.value()));
 
 	}
+
 
 }

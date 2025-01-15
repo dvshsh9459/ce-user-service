@@ -42,8 +42,6 @@ public class AdminService {
 				user.setPassword(admin.getPassword()); // Preferably store hashed password
 				user.setRole(Role.ADMIN); // Mark as admin
 				userRepository.save(user);
-				admin.setRole(Role.ADMIN);
-				admin.setUser(user);
 				adminRepository.save(admin);
 			}
 			UserDetails details = customDetailsService.loadUserByUsername(admin.getEmail());

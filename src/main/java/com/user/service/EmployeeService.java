@@ -49,7 +49,7 @@ public class EmployeeService {
 		Employee employee = Employee.builder().name(registerRequest.getName()).email(registerRequest.getEmail())
 				.password(registerRequest.getPassword()).aadharCardNo(registerRequest.getAadharCardNo())
 				.contactNumber(registerRequest.getContactNumber()).qualification(registerRequest.getQualification())
-				.user(user).salary(registerRequest.getSalary()).role(Role.EMPLOYEE).build();
+				.salary(registerRequest.getSalary()).role(Role.EMPLOYEE).build();
 
 		employeeRepository.save(employee);
 		return ResponseEntity.status(HttpStatus.OK)
