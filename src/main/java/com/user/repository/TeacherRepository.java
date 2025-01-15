@@ -2,9 +2,9 @@ package com.user.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.user.repository.entity.Teacher;
+import com.user.repository.entity.Employee;
 
-public interface TeacherRepository extends JpaRepository<Teacher, Integer> {
-	Teacher findByEmail(String email);
+public interface TeacherRepository extends JpaRepository<Employee, Integer> {
+	Employee findByEmail(String email);
 
 }

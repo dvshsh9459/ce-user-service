@@ -22,24 +22,19 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
-public class Student  {
+@SuperBuilder
+public class Student extends User {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "student_id")
 	private int id;
-	@Email(message="Enter Valid Email")
-	private String email;
-	@NotEmpty(message="Password Must Not Be Empty")
-	private String password;
-	@JsonIgnore
-	@Enumerated(EnumType.STRING)
-	private Role role;
 	@NotEmpty(message = "name is mendatory")
 	private String name;
 	@NotNull(message = "Aadhar Card Number cannot be null")
@@ -49,8 +44,7 @@ public class Student  {
 	@NotEmpty(message =  "Qualification Must Not Be Null")
 	private String qualification;
 	private long contactNo;
-	@OneToOne(cascade = CascadeType.PERSIST)
-	private User user ;
+	
 	
 	
 

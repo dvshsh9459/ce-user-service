@@ -21,7 +21,7 @@ public class StudentService {
 
 
 
-
+	public ResponseEntity<UserResponse> studentRegisteration(StudentRegRequest regRequest) {
 		Student existedStudent = studentRepository.findByEmail(regRequest.getEmail());
 		if (existedStudent != null) {
 			return ResponseEntity.status(HttpStatus.CONFLICT)

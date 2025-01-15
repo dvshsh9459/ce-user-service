@@ -9,7 +9,6 @@ import com.user.controller.request.TeacherRegisterRequest;
 import com.user.controller.response.UserResponse;
 import com.user.repository.TeacherRepository;
 import com.user.repository.entity.Employee;
-import com.user.repository.entity.Teacher;
 
 @Service
 public class TeacherService {
@@ -23,12 +22,11 @@ public class TeacherService {
 					.body(new UserResponse("User Already exists ", false, HttpStatus.CONFLICT.value()));
 		}
 
-		Teacher teacher = new Teacher();
+		Employee employee = new Employee();
 	
-		teacher.setEmail(registerRequest.getEmail());
-		teacher.setPassword(registerRequest.getPassword());
-		teacher.setPhoneNo(registerRequest.getPhoneNo());
-		repository.save(teacher);
+		employee.setEmail(registerRequest.getEmail());
+		employee.setPassword(registerRequest.getPassword());
+		employee.setContactNumber(registerRequest.getPhoneNo());
 		return ResponseEntity.status(HttpStatus.OK)
 				.body(new UserResponse("User Register Successfully ", true, HttpStatus.OK.value()));
 
