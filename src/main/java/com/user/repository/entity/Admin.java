@@ -3,6 +3,7 @@ package com.user.repository.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.CascadeType;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -14,27 +15,26 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
-@Getter
-@Setter
+@Data
 @Builder
-public class Admin  {
+public class Admin {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private int id;
-	@Email(message="Enter Valid Email")
+	@Email(message = "Enter Valid Email")
 	private String email;
-	@NotEmpty(message="Password Must Not Be Empty")
+	@NotEmpty(message = "Password Must Not Be Empty")
 	private String password;
 	@JsonIgnore
 	@Enumerated(EnumType.STRING)
-	private Role role ;
-	@OneToOne(cascade = CascadeType.PERSIST)
+	private Role role;
+	@OneToOne(cascade = CascadeType.ALL)
 	private User user;
+	
 }

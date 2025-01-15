@@ -3,10 +3,8 @@ package com.user.controller.request;
 import lombok.Data;
 
 @Data
-public class TeacherRegisterRequest {
-
+public class EmployeeLoginRequest {
 	private String email;
 	private String password;
-	private long phoneNo;
 
 }

@@ -1,5 +1,11 @@
 package com.user.repository.entity;
 
+import java.util.Collection;
+import java.util.List;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -12,6 +18,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+
 import jakarta.persistence.OneToOne;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Email;
@@ -22,20 +29,26 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 @Entity
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@ToString
 @Builder
-public class Student  {
+public class Student implements UserDetails {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private int id;
-	@Email(message="Enter Valid Email")
+	@Email(message = "Enter Valid Email")
 	private String email;
-	@NotEmpty(message="Password Must Not Be Empty")
+	@NotEmpty(message = "Password Must Not Be Empty")
 	private String password;
 	@JsonIgnore
 	@Enumerated(EnumType.STRING)
@@ -46,12 +59,21 @@ public class Student  {
 	@Digits(integer = 12, fraction = 0, message = "Aadhar Card Number must be exactly 12 digits")
 	@Column(unique = true, nullable = false, length = 12)
 	private long aadharCardNo;
-	@NotEmpty(message =  "Qualification Must Not Be Null")
+	@NotEmpty(message = "Qualification Must Not Be Null")
 	private String qualification;
 	private long contactNo;
-	@OneToOne(cascade = CascadeType.PERSIST)
-	private User user ;
-	
-	
+	@OneToOne(cascade = CascadeType.ALL)
+	private User user;
+
+	@Override
+	public Collection<? extends GrantedAuthority> getAuthorities() {
+
+		return List.of(new SimpleGrantedAuthority(role.name()));
+	}
+
+	@Override
+	public String getUsername() {
+		return email;
+	}
 
 }
