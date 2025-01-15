@@ -7,13 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class StudentRegRequest {
-
+public class RemoveStuRequest {
 	private String email;
-	private String password;
-	private String qualification;
-	private String name;
-	private long aadharCardNo;
-	private long contactNo;
 
 }

@@ -10,6 +10,9 @@ import lombok.experimental.SuperBuilder;
 @Getter
 @Setter
 @SuperBuilder
-public class Admin extends User  {
+public class Admin extends User  {/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 
 }

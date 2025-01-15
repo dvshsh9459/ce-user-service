@@ -1,9 +1,7 @@
 package com.user.repository.entity;
 
 public enum Role {
-	
-		ADMIN, TEACHER, STUDENT
 
-
+	ADMIN, EMPLOYEE, STUDENT
 
 }
