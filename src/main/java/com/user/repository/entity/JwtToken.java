@@ -12,11 +12,14 @@ import jakarta.persistence.OneToOne;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Builder
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class JwtToken {
@@ -24,7 +27,6 @@ public class JwtToken {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private int id;
 	private String email;
-	@Column(nullable = false, unique = true, length = 1024)
 	private String token;
 	private Date issuedAt;
 	private Date expiresAt;
