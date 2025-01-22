@@ -52,7 +52,6 @@ public class User implements UserDetails  {
 	private Role role;
 	@OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
 	private JwtToken jwtToken;
-	
 
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {
