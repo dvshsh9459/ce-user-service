@@ -1,26 +1,31 @@
 package com.user.service;
 
 import java.util.List;
+import java.util.Random;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.user.config.CustomDetailsService;
 import com.user.config.JwtHelper;
+import com.user.controller.request.ForgetPassword;
 import com.user.controller.request.RemoveStuRequest;
 import com.user.controller.request.StudentLoginRequest;
 import com.user.controller.request.StudentRegRequest;
+import com.user.controller.request.UpdatePasswordReq;
 import com.user.controller.response.AuthResponse;
+import com.user.controller.response.ForgetPassResponse;
 import com.user.controller.response.UserResponse;
+import com.user.repository.JwtRepository;
 import com.user.repository.StudentRepository;
-import com.user.repository.UserRepository;
+
+import com.user.repository.entity.JwtToken;
 import com.user.repository.entity.Role;
 import com.user.repository.entity.Student;
-import com.user.repository.entity.User;
 
 import io.jsonwebtoken.Claims;
 
@@ -43,8 +48,7 @@ public class StudentService {
 		}
 
 		Student student = Student.builder().email(regRequest.getEmail()).aadharCardNo(regRequest.getAadharCardNo())
-				.contactNo(regRequest.getContactNo()).name(regRequest.getName()).password(regRequest.getPassword())
-				.qualification(regRequest.getQualification()).build();
+				.qualification(regRequest.getQualification()).role(Role.STUDENT).build();
 		System.out.println(student);
 
 		studentRepository.save(student);
@@ -55,7 +59,7 @@ public class StudentService {
 	public ResponseEntity<AuthResponse> studentLogin(StudentLoginRequest loginRequest) {
 		Student student = studentRepository.findByEmail(loginRequest.getEmail());
 		String token = null;
-		if (student != null && student.getPassword().equals(loginRequest.getPassword())) {
+		if (student != null && encoder.matches(loginRequest.getPassword(), student.getPassword())) {
 			UserDetails details = customDetailsService.loadUserByUsername(student.getEmail());
 			token = helper.generateToken(details, student.getPassword(), Role.STUDENT);
 			String existingtoken = helper.getOrGenerateToken(student.getEmail(), student.getPassword(), Role.STUDENT);
@@ -89,5 +93,47 @@ public class StudentService {
 
 	}
 
+	public ResponseEntity<UserResponse> updatePassword(UpdatePasswordReq passwordReq) {
+		Student student = studentRepository.findByEmail(passwordReq.getEmail());
+		if (student != null && encoder.matches(passwordReq.getOldPassword(), student.getPassword())) {
+			if (passwordReq.getNewPassword().equals(passwordReq.getConfirmPassword())) {
+				student.setPassword(encoder.encode(passwordReq.getNewPassword()));
+				studentRepository.save(student);
+				return ResponseEntity.status(HttpStatus.OK)
+						.body(new UserResponse("Password updated Successfully", true, HttpStatus.OK.value()));
+			} else {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new UserResponse(
+						"New Password And Confirm Password Does Not Match", true, HttpStatus.BAD_REQUEST.value()));
+
+			}
+		}
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+				.body(new UserResponse("Invalid Email Or Password", false, HttpStatus.BAD_REQUEST.value()));
+
+	}
+
+	public ResponseEntity<ForgetPassResponse> forgetPassword(ForgetPassword forgetPassword) {
+		Student student = studentRepository.findByEmail(forgetPassword.getEmail());
+		if (student == null) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND)
+					.body(new ForgetPassResponse("Student Not Found ", " ", HttpStatus.NOT_FOUND.value()));
+
+		}
+		String AB = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+		Random rnd = new Random();
+		int length = 10;
+		StringBuilder sb = new StringBuilder(length);
+		for (int i = 0; i < length; i++) {
+			sb.append(AB.charAt(rnd.nextInt(AB.length())));
+		}
+		System.out.println(sb.toString());
+		student.setPassword(encoder.encode(sb));
+		studentRepository.save(student);
+		JwtToken jwtToken = jwtRepository.findByEmail(forgetPassword.getEmail());
+		jwtRepository.delete(jwtToken);
+		return ResponseEntity.status(HttpStatus.OK).body(new ForgetPassResponse("Password Forget Successfully",
+				"Login Password is " + sb.toString(), HttpStatus.OK.value()));
+
+	}
 
 }
