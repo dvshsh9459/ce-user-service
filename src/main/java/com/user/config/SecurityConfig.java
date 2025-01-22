@@ -30,11 +30,15 @@ public class SecurityConfig {
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http.csrf(csrf -> csrf.disable()).authorizeHttpRequests(requests -> requests
 
-				.requestMatchers("/student/registeration", "/student/login", "/admin/login", "/teacher/registeration",
-						"/teacher/login", "/v3/api-docs", "/configuration/ui", "/swagger-resources/**",
-						"/configuration/security", "/swagger-ui.html", "/webjars/**", "/swagger-ui/**")
-				.permitAll().requestMatchers("/teacher/remove", "/student/remove", "/student/getAll", "/teacher/getAll")
-				.hasAnyAuthority(Role.ADMIN.name())
+				.requestMatchers("/student/registeration", "/student/login", "/admin/login", "/employee/registeration",
+						"/employee/forgetPassword", "/student/forgetPassword", "/employee/login", "/v3/api-docs",
+						"/configuration/ui", "/swagger-resources/**", "/configuration/security", "/swagger-ui.html",
+						"/webjars/**", "/swagger-ui/**")
+				.permitAll().requestMatchers("/employee/remove", "/student/remove", "/employee/getAll")
+				.hasAnyAuthority(Role.ADMIN.name()).requestMatchers("/student/getAll")
+				.hasAnyAuthority(Role.ADMIN.name(), Role.EMPLOYEE.name()).requestMatchers("/student/updatePassword")
+				.hasAnyAuthority(Role.STUDENT.name()).requestMatchers("/employee/updatePassword")
+				.hasAnyAuthority(Role.EMPLOYEE.name())
 
 				.anyRequest().authenticated())
 				.exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationConfig))
