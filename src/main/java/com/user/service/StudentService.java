@@ -33,8 +33,6 @@ public class StudentService {
 	private JwtHelper helper;
 	@Autowired
 	private CustomDetailsService customDetailsService;
-	@Autowired
-	private UserRepository userRepository;
 
 	public ResponseEntity<UserResponse> studentRegistration(StudentRegRequest regRequest) {
 		// Check if the student already exists by email
@@ -44,12 +42,9 @@ public class StudentService {
 					.body(new UserResponse("User already exists", false, HttpStatus.CONFLICT.value()));
 		}
 
-		User user = User.builder().email(regRequest.getEmail()).password(regRequest.getPassword()).role(Role.STUDENT)
-				.build();
-		user = userRepository.save(user);
 		Student student = Student.builder().email(regRequest.getEmail()).aadharCardNo(regRequest.getAadharCardNo())
 				.contactNo(regRequest.getContactNo()).name(regRequest.getName()).password(regRequest.getPassword())
-				.qualification(regRequest.getQualification()).role(Role.STUDENT).build();
+				.qualification(regRequest.getQualification()).build();
 		System.out.println(student);
 
 		studentRepository.save(student);
