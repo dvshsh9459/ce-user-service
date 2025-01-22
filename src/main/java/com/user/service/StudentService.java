@@ -39,10 +39,6 @@ public class StudentService {
 	@Autowired
 	private CustomDetailsService customDetailsService;
 
-	private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-	@Autowired
-	private JwtRepository jwtRepository;
-
 	public ResponseEntity<UserResponse> studentRegistration(StudentRegRequest regRequest) {
 		// Check if the student already exists by email
 		Student existingStudent = studentRepository.findByEmail(regRequest.getEmail());
@@ -51,13 +47,8 @@ public class StudentService {
 					.body(new UserResponse("User already exists", false, HttpStatus.CONFLICT.value()));
 		}
 
-//		User user = User.builder().email(regRequest.getEmail()).password(regRequest.getPassword()).role(Role.STUDENT)
-//				.build();
-//		user = userRepository.save(user);
 		Student student = Student.builder().email(regRequest.getEmail()).aadharCardNo(regRequest.getAadharCardNo())
-				.contactNo(regRequest.getContactNo()).name(regRequest.getName())
-				.password(encoder.encode(regRequest.getPassword())).qualification(regRequest.getQualification())
-				.role(Role.STUDENT).build();
+				.qualification(regRequest.getQualification()).role(Role.STUDENT).build();
 		System.out.println(student);
 
 		studentRepository.save(student);
