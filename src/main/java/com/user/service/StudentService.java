@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 
 import com.user.config.CustomDetailsService;
 import com.user.config.JwtHelper;
-import com.user.controller.request.ForgetPassword;
+import com.user.controller.request.ForgetPasswordRequest;
 import com.user.controller.request.RemoveStuRequest;
 import com.user.controller.request.StudentLoginRequest;
 import com.user.controller.request.StudentRegRequest;
@@ -51,9 +51,6 @@ public class StudentService {
 					.body(new UserResponse("User already exists", false, HttpStatus.CONFLICT.value()));
 		}
 
-//		User user = User.builder().email(regRequest.getEmail()).password(regRequest.getPassword()).role(Role.STUDENT)
-//				.build();
-//		user = userRepository.save(user);
 		Student student = Student.builder().email(regRequest.getEmail()).aadharCardNo(regRequest.getAadharCardNo())
 				.contactNo(regRequest.getContactNo()).name(regRequest.getName())
 				.password(encoder.encode(regRequest.getPassword())).qualification(regRequest.getQualification())
@@ -121,7 +118,7 @@ public class StudentService {
 
 	}
 
-	public ResponseEntity<ForgetPassResponse> forgetPassword(ForgetPassword forgetPassword) {
+	public ResponseEntity<ForgetPassResponse> forgetPassword(ForgetPasswordRequest forgetPassword) {
 		Student student = studentRepository.findByEmail(forgetPassword.getEmail());
 		if (student == null) {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -141,7 +138,7 @@ public class StudentService {
 		JwtToken jwtToken = jwtRepository.findByEmail(forgetPassword.getEmail());
 		jwtRepository.delete(jwtToken);
 		return ResponseEntity.status(HttpStatus.OK).body(new ForgetPassResponse("Password Forget Successfully",
-				"Login Password is " + sb.toString(), HttpStatus.OK.value()));
+				"Password For Login is " + sb.toString(), HttpStatus.OK.value()));
 
 	}
 

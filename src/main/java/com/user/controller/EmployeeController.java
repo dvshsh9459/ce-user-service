@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.user.controller.request.EmployeeLoginRequest;
 import com.user.controller.request.EmployeeRegisterRequest;
-import com.user.controller.request.ForgetPassword;
+import com.user.controller.request.ForgetPasswordRequest;
 import com.user.controller.request.RemoveEmpRequest;
 import com.user.controller.request.UpdatePasswordReq;
 import com.user.controller.response.AuthResponse;
@@ -57,7 +57,7 @@ public class EmployeeController {
 	}
 
 	@PutMapping("/forgetPassword")
-	public ResponseEntity<ForgetPassResponse> forgetPassword(@RequestBody ForgetPassword forgetPassword) {
+	public ResponseEntity<ForgetPassResponse> forgetPassword(@RequestBody ForgetPasswordRequest forgetPassword) {
 		return employeeService.forgetPassword(forgetPassword);
 	}
 }

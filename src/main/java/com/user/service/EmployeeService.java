@@ -14,7 +14,7 @@ import com.user.config.CustomDetailsService;
 import com.user.config.JwtHelper;
 import com.user.controller.request.EmployeeLoginRequest;
 import com.user.controller.request.EmployeeRegisterRequest;
-import com.user.controller.request.ForgetPassword;
+import com.user.controller.request.ForgetPasswordRequest;
 import com.user.controller.request.RemoveEmpRequest;
 import com.user.controller.request.UpdatePasswordReq;
 import com.user.controller.response.AuthResponse;
@@ -25,7 +25,6 @@ import com.user.repository.JwtRepository;
 import com.user.repository.entity.Employee;
 import com.user.repository.entity.JwtToken;
 import com.user.repository.entity.Role;
-
 
 import io.jsonwebtoken.Claims;
 
@@ -48,9 +47,6 @@ public class EmployeeService {
 			return ResponseEntity.status(HttpStatus.CONFLICT)
 					.body(new UserResponse("User Already exists ", false, HttpStatus.CONFLICT.value()));
 		}
-//		User user = User.builder().email(registerRequest.getEmail()).password(registerRequest.getPassword()) // Consider
-//				.role(Role.EMPLOYEE).build();
-//		user = userRepository.save(user);
 
 		Employee employee = Employee.builder().name(registerRequest.getName()).email(registerRequest.getEmail())
 				.password(encoder.encode(registerRequest.getPassword())).aadharCardNo(registerRequest.getAadharCardNo())
@@ -120,7 +116,7 @@ public class EmployeeService {
 
 	}
 
-	public ResponseEntity<ForgetPassResponse> forgetPassword(ForgetPassword forgetPassword) {
+	public ResponseEntity<ForgetPassResponse> forgetPassword(ForgetPasswordRequest forgetPassword) {
 		Employee employee = employeeRepository.findByEmail(forgetPassword.getEmail());
 		if (employee == null) {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND)
