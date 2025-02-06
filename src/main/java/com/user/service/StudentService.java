@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 
 import com.user.config.CustomDetailsService;
 import com.user.config.JwtHelper;
-import com.user.controller.request.ForgetPassword;
+import com.user.controller.request.ForgetPasswordRequest;
 import com.user.controller.request.RemoveStuRequest;
 import com.user.controller.request.StudentLoginRequest;
 import com.user.controller.request.StudentRegRequest;
@@ -28,8 +28,10 @@ import com.user.repository.entity.Role;
 import com.user.repository.entity.Student;
 
 import io.jsonwebtoken.Claims;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class StudentService {
 
 	@Autowired
@@ -43,8 +45,9 @@ public class StudentService {
 		// Check if the student already exists by email
 		Student existingStudent = studentRepository.findByEmail(regRequest.getEmail());
 		if (existingStudent != null) {
+			log.warn("Student registration attempt failed: User already exists with email {}", regRequest.getEmail());
 			return ResponseEntity.status(HttpStatus.CONFLICT)
-					.body(new UserResponse("User already exists", false, HttpStatus.CONFLICT.value()));
+					.body(new UserResponse("Student already exists", false, HttpStatus.CONFLICT.value()));
 		}
 
 		Student student = Student.builder().email(regRequest.getEmail()).aadharCardNo(regRequest.getAadharCardNo())
@@ -52,8 +55,9 @@ public class StudentService {
 		System.out.println(student);
 
 		studentRepository.save(student);
+		log.info("Student register Successfully with email {}", regRequest.getEmail());
 		return ResponseEntity.status(HttpStatus.OK)
-				.body(new UserResponse("User registered successfully", true, HttpStatus.OK.value()));
+				.body(new UserResponse("Student registered successfully", true, HttpStatus.OK.value()));
 	}
 
 	public ResponseEntity<AuthResponse> studentLogin(StudentLoginRequest loginRequest) {
@@ -68,10 +72,12 @@ public class StudentService {
 			Claims claims2 = JwtHelper.decodeJwt(token);
 			System.out.println(token);
 			if (claims1.getSubject().equals(claims2.getSubject())) {
+				log.info("Student Login Successfully With Email:{}", loginRequest.getEmail());
 				return ResponseEntity.status(HttpStatus.OK)
 						.body(new AuthResponse("Student login Successfully", true, HttpStatus.OK.value(), token));
 			}
 		}
+		log.warn("Login attempt failed: Invalid email or password for email {}", loginRequest.getEmail());
 		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthResponse(
 				"Login failed ! Inavlid email or password", false, HttpStatus.UNAUTHORIZED.value(), token));
 	}
@@ -83,11 +89,13 @@ public class StudentService {
 	public ResponseEntity<UserResponse> removeStudent(RemoveStuRequest removeStuRequest) {
 		Student student = studentRepository.findByEmail(removeStuRequest.getEmail());
 		if (student == null) {
+			log.warn("Attempted to remove Student, but no student found with email: {}", removeStuRequest.getEmail());
 			return ResponseEntity.status(HttpStatus.NOT_FOUND)
 					.body(new UserResponse("User Does Not Exists", false, HttpStatus.NOT_FOUND.value()));
 		}
 
 		studentRepository.delete(student);
+		log.info("Student removed successfully with email:{}", removeStuRequest.getEmail());
 		return ResponseEntity.status(HttpStatus.OK)
 				.body(new UserResponse("Student Removed Successfully", true, HttpStatus.OK.value()));
 
@@ -99,22 +107,27 @@ public class StudentService {
 			if (passwordReq.getNewPassword().equals(passwordReq.getConfirmPassword())) {
 				student.setPassword(encoder.encode(passwordReq.getNewPassword()));
 				studentRepository.save(student);
+				log.info("Password updated successfully for email:{}", passwordReq.getEmail());
 				return ResponseEntity.status(HttpStatus.OK)
 						.body(new UserResponse("Password updated Successfully", true, HttpStatus.OK.value()));
 			} else {
+				log.error("Password update failed: New password and confirm password do not match for request: {}",
+						passwordReq.getEmail());
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new UserResponse(
-						"New Password And Confirm Password Does Not Match", true, HttpStatus.BAD_REQUEST.value()));
+						"New Password And Confirm Password does not match", true, HttpStatus.BAD_REQUEST.value()));
 
 			}
 		}
+		log.error("Password update failed: Email Or Password do not match for request: {}", passwordReq.getEmail());
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 				.body(new UserResponse("Invalid Email Or Password", false, HttpStatus.BAD_REQUEST.value()));
 
 	}
 
-	public ResponseEntity<ForgetPassResponse> forgetPassword(ForgetPassword forgetPassword) {
+	public ResponseEntity<ForgetPassResponse> forgetPassword(ForgetPasswordRequest forgetPassword) {
 		Student student = studentRepository.findByEmail(forgetPassword.getEmail());
 		if (student == null) {
+			log.warn("Password reset attempt failed: No employee found with email {}", forgetPassword.getEmail());
 			return ResponseEntity.status(HttpStatus.NOT_FOUND)
 					.body(new ForgetPassResponse("Student Not Found ", " ", HttpStatus.NOT_FOUND.value()));
 
@@ -131,8 +144,9 @@ public class StudentService {
 		studentRepository.save(student);
 		JwtToken jwtToken = jwtRepository.findByEmail(forgetPassword.getEmail());
 		jwtRepository.delete(jwtToken);
+		log.info("Password reset Successsfully with email:{}", forgetPassword.getEmail());
 		return ResponseEntity.status(HttpStatus.OK).body(new ForgetPassResponse("Password Forget Successfully",
-				"Login Password is " + sb.toString(), HttpStatus.OK.value()));
+				"Password For Login is " + sb.toString(), HttpStatus.OK.value()));
 
 	}
 

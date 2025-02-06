@@ -14,7 +14,7 @@ import com.user.config.CustomDetailsService;
 import com.user.config.JwtHelper;
 import com.user.controller.request.EmployeeLoginRequest;
 import com.user.controller.request.EmployeeRegisterRequest;
-import com.user.controller.request.ForgetPassword;
+import com.user.controller.request.ForgetPasswordRequest;
 import com.user.controller.request.RemoveEmpRequest;
 import com.user.controller.request.UpdatePasswordReq;
 import com.user.controller.response.AuthResponse;
@@ -26,10 +26,11 @@ import com.user.repository.entity.Employee;
 import com.user.repository.entity.JwtToken;
 import com.user.repository.entity.Role;
 
-
 import io.jsonwebtoken.Claims;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class EmployeeService {
 	@Autowired
 	private EmployeeRepository employeeRepository;
@@ -45,12 +46,10 @@ public class EmployeeService {
 	public ResponseEntity<UserResponse> teacherRegisteration(EmployeeRegisterRequest registerRequest) {
 		Employee existedEmployee = employeeRepository.findByEmail(registerRequest.getEmail());
 		if (existedEmployee != null) {
+			log.warn("Registeration failed !! Employee already exists with email:{}", registerRequest.getEmail());
 			return ResponseEntity.status(HttpStatus.CONFLICT)
-					.body(new UserResponse("User Already exists ", false, HttpStatus.CONFLICT.value()));
+					.body(new UserResponse("Employee already exists ", false, HttpStatus.CONFLICT.value()));
 		}
-//		User user = User.builder().email(registerRequest.getEmail()).password(registerRequest.getPassword()) // Consider
-//				.role(Role.EMPLOYEE).build();
-//		user = userRepository.save(user);
 
 		Employee employee = Employee.builder().name(registerRequest.getName()).email(registerRequest.getEmail())
 				.password(encoder.encode(registerRequest.getPassword())).aadharCardNo(registerRequest.getAadharCardNo())
@@ -58,8 +57,9 @@ public class EmployeeService {
 				.salary(registerRequest.getSalary()).role(Role.EMPLOYEE).build();
 
 		employeeRepository.save(employee);
+		log.info("Employee register successfully with email:{}", registerRequest.getEmail());
 		return ResponseEntity.status(HttpStatus.OK)
-				.body(new UserResponse("User Register Successfully ", true, HttpStatus.OK.value()));
+				.body(new UserResponse("Employee register successfully ", true, HttpStatus.OK.value()));
 
 	}
 
@@ -76,12 +76,14 @@ public class EmployeeService {
 			Claims claims2 = JwtHelper.decodeJwt(token);
 			System.out.println(token);
 			if (claims1.getSubject().equals(claims2.getSubject())) {
+				log.info("Employee login successfully with email:{}", loginRequest.getEmail());
 				return ResponseEntity.status(HttpStatus.OK)
-						.body(new AuthResponse("Student login Successfully", true, HttpStatus.OK.value(), token));
+						.body(new AuthResponse("Employee login successfully", true, HttpStatus.OK.value(), token));
 			}
 		}
+		log.warn("Employee login failed with email:{}", loginRequest.getEmail());
 		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthResponse(
-				"User Login Failed ! invalid email and password", false, HttpStatus.UNAUTHORIZED.value(), token));
+				"Employee login failed ! invalid email and password", false, HttpStatus.UNAUTHORIZED.value(), token));
 
 	}
 
@@ -92,12 +94,14 @@ public class EmployeeService {
 	public ResponseEntity<UserResponse> removeEmployee(RemoveEmpRequest empRequest) {
 		Employee employee = employeeRepository.findByEmail(empRequest.getEmail());
 		if (employee == null) {
+			log.warn("Attempted to remove employee, but no employee found with email: {}", empRequest.getEmail());
 			return ResponseEntity.status(HttpStatus.NOT_FOUND)
-					.body(new UserResponse("Employee Does Not Exists", false, HttpStatus.NOT_FOUND.value()));
+					.body(new UserResponse("Employee does not exists", false, HttpStatus.NOT_FOUND.value()));
 		}
 		employeeRepository.delete(employee);
+		log.info("Employee removed successfully with email:{}", empRequest.getEmail());
 		return ResponseEntity.status(HttpStatus.OK)
-				.body(new UserResponse("Employee Removed Successfully", true, HttpStatus.OK.value()));
+				.body(new UserResponse("Employee removed successfully", true, HttpStatus.OK.value()));
 
 	}
 
@@ -107,22 +111,28 @@ public class EmployeeService {
 			if (passwordReq.getNewPassword().equals(passwordReq.getConfirmPassword())) {
 				employee.setPassword(encoder.encode(passwordReq.getNewPassword()));
 				employeeRepository.save(employee);
+				log.warn("Password Updated For Email:{}", passwordReq.getEmail());
 				return ResponseEntity.status(HttpStatus.OK)
 						.body(new UserResponse("Password updated Successfully", true, HttpStatus.OK.value()));
 			} else {
+				log.error("Password update failed: New password and confirm password do not match for request: {}",
+						passwordReq.getEmail());
+
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new UserResponse(
 						"New Password And Confirm Password Does Not Match", true, HttpStatus.BAD_REQUEST.value()));
 
 			}
 		}
+		log.error("Password update failed: Email Or Password do not match for request: {}", passwordReq.getEmail());
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 				.body(new UserResponse("Invalid Email Or Password", false, HttpStatus.BAD_REQUEST.value()));
 
 	}
 
-	public ResponseEntity<ForgetPassResponse> forgetPassword(ForgetPassword forgetPassword) {
+	public ResponseEntity<ForgetPassResponse> forgetPassword(ForgetPasswordRequest forgetPassword) {
 		Employee employee = employeeRepository.findByEmail(forgetPassword.getEmail());
 		if (employee == null) {
+			log.warn("Password reset attempt failed: No employee found with email {}", forgetPassword.getEmail());
 			return ResponseEntity.status(HttpStatus.NOT_FOUND)
 					.body(new ForgetPassResponse("Employee Not Found ", " ", HttpStatus.NOT_FOUND.value()));
 
@@ -139,6 +149,7 @@ public class EmployeeService {
 		employeeRepository.save(employee);
 		JwtToken jwtToken = jwtRepository.findByEmail(forgetPassword.getEmail());
 		jwtRepository.delete(jwtToken);
+		log.info("Password reset Successsfully with email:{}", forgetPassword.getEmail());
 		return ResponseEntity.status(HttpStatus.OK).body(new ForgetPassResponse("Password Forget Successfully",
 				"Login Password is " + sb.toString(), HttpStatus.OK.value()));
 

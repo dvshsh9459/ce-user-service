@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.user.controller.request.ForgetPassword;
+import com.user.controller.request.ForgetPasswordRequest;
 import com.user.controller.request.RemoveStuRequest;
 import com.user.controller.request.StudentLoginRequest;
 import com.user.controller.request.StudentRegRequest;
@@ -56,7 +56,7 @@ public class StudentController {
 	}
 
 	@PutMapping("/forgetPassword")
-	public ResponseEntity<ForgetPassResponse> forgetPassword(@RequestBody ForgetPassword forgetPassword) {
+	public ResponseEntity<ForgetPassResponse> forgetPassword(@RequestBody ForgetPasswordRequest forgetPassword) {
 		return studentService.forgetPassword(forgetPassword);
 	}
 

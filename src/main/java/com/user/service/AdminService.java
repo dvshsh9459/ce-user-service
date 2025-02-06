@@ -16,8 +16,10 @@ import com.user.repository.entity.Role;
 import com.user.repository.entity.User;
 
 import io.jsonwebtoken.Claims;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class AdminService {
 	@Autowired
 	private CustomDetailsService customDetailsService;
@@ -38,14 +40,15 @@ public class AdminService {
 			Claims claims2 = JwtHelper.decodeJwt(token);
 			System.out.println(token);
 			if (claims1.getSubject().equals(claims2.getSubject())) {
-
+				log.info("Admin login successfully with email: {}", loginRequest.getEmail());
 				return ResponseEntity.status(HttpStatus.OK)
 						.body(new AuthResponse("Admin Login Successfully", true, HttpStatus.OK.value(), token));
 			}
 		}
+		log.warn("Admin login failed!! with email: {}", loginRequest.getEmail());
 
 		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthResponse(
-				"Admin Login failed!! invalid email or password", true, HttpStatus.UNAUTHORIZED.value(), null));
+				"Admin login failed!! invalid email or password", true, HttpStatus.UNAUTHORIZED.value(), null));
 	}
 
 }
