@@ -13,8 +13,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import com.user.repository.entity.Role;
-
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -35,10 +33,9 @@ public class SecurityConfig {
 						"/configuration/ui", "/swagger-resources/**", "/configuration/security", "/swagger-ui.html",
 						"/webjars/**", "/swagger-ui/**")
 				.permitAll().requestMatchers("/employee/remove", "/student/remove", "/employee/getAll")
-				.hasAnyAuthority(Role.ADMIN.name()).requestMatchers("/student/getAll")
-				.hasAnyAuthority(Role.ADMIN.name(), Role.EMPLOYEE.name()).requestMatchers("/student/updatePassword")
-				.hasAnyAuthority(Role.STUDENT.name()).requestMatchers("/employee/updatePassword")
-				.hasAnyAuthority(Role.EMPLOYEE.name())
+				.hasAnyAuthority("ADMIN").requestMatchers("/student/getAll").hasAnyAuthority("ADMIN", "EMPLOYEE")
+				.requestMatchers("/student/updatePassword").hasAnyAuthority("STUDENT")
+				.requestMatchers("/employee/updatePassword").hasAnyAuthority("EMPLOYEE")
 
 				
 				

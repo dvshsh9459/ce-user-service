@@ -21,6 +21,7 @@ import com.user.controller.response.AuthResponse;
 import com.user.controller.response.ForgetPassResponse;
 import com.user.controller.response.UserResponse;
 import com.user.repository.JwtRepository;
+import com.user.repository.RoleRepository;
 import com.user.repository.StudentRepository;
 
 import com.user.repository.entity.JwtToken;
@@ -41,6 +42,14 @@ public class StudentService {
 	@Autowired
 	private CustomDetailsService customDetailsService;
 
+
+	private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+	@Autowired
+	private JwtRepository jwtRepository;
+
+	@Autowired
+	private RoleRepository roleRepository;
+
 	public ResponseEntity<UserResponse> studentRegistration(StudentRegRequest regRequest) {
 		// Check if the student already exists by email
 		Student existingStudent = studentRepository.findByEmail(regRequest.getEmail());
@@ -50,8 +59,15 @@ public class StudentService {
 					.body(new UserResponse("Student already exists", false, HttpStatus.CONFLICT.value()));
 		}
 
+      
+		Role role = roleRepository.findByRole("STUDENT");
+		Student student = Student.builder().email(regRequest.getEmail())
+				.password(encoder.encode(regRequest.getPassword())).role(role).build();
+
+
 		Student student = Student.builder().email(regRequest.getEmail()).aadharCardNo(regRequest.getAadharCardNo())
 				.qualification(regRequest.getQualification()).role(Role.STUDENT).build();
+
 		System.out.println(student);
 
 		studentRepository.save(student);
@@ -65,8 +81,8 @@ public class StudentService {
 		String token = null;
 		if (student != null && encoder.matches(loginRequest.getPassword(), student.getPassword())) {
 			UserDetails details = customDetailsService.loadUserByUsername(student.getEmail());
-			token = helper.generateToken(details, student.getPassword(), Role.STUDENT);
-			String existingtoken = helper.getOrGenerateToken(student.getEmail(), student.getPassword(), Role.STUDENT);
+			token = helper.generateToken(details, student.getPassword(),student.getRole());
+			String existingtoken = helper.getOrGenerateToken(student.getEmail(), student.getPassword(), student.getRole());
 
 			Claims claims1 = JwtHelper.decodeJwt(existingtoken);
 			Claims claims2 = JwtHelper.decodeJwt(token);
@@ -132,12 +148,12 @@ public class StudentService {
 					.body(new ForgetPassResponse("Student Not Found ", " ", HttpStatus.NOT_FOUND.value()));
 
 		}
-		String AB = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+		String pass = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 		Random rnd = new Random();
 		int length = 10;
 		StringBuilder sb = new StringBuilder(length);
 		for (int i = 0; i < length; i++) {
-			sb.append(AB.charAt(rnd.nextInt(AB.length())));
+			sb.append(pass.charAt(rnd.nextInt(pass.length())));
 		}
 		System.out.println(sb.toString());
 		student.setPassword(encoder.encode(sb));
