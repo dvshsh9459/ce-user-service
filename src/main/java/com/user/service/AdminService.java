@@ -34,8 +34,8 @@ public class AdminService {
 		User user = userRepository.findByEmail(loginRequest.getEmail());
 		if (user != null && user.getPassword().equals(loginRequest.getPassword())) {
 			UserDetails details = customDetailsService.loadUserByUsername(user.getEmail());
-			String token = helper.generateToken(details, user.getPassword(), Role.ADMIN);
-			String existingtoken = helper.getOrGenerateToken(user.getEmail(), user.getPassword(), Role.ADMIN);
+			String token = helper.generateToken(details, user.getPassword(), user.getRole());
+			String existingtoken = helper.getOrGenerateToken(user.getEmail(), user.getPassword(), user.getRole());
 			Claims claims1 = JwtHelper.decodeJwt(existingtoken);
 			Claims claims2 = JwtHelper.decodeJwt(token);
 			System.out.println(token);

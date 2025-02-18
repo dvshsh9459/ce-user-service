@@ -22,6 +22,7 @@ import com.user.controller.response.ForgetPassResponse;
 import com.user.controller.response.UserResponse;
 import com.user.repository.EmployeeRepository;
 import com.user.repository.JwtRepository;
+import com.user.repository.RoleRepository;
 import com.user.repository.entity.Employee;
 import com.user.repository.entity.JwtToken;
 import com.user.repository.entity.Role;
@@ -42,6 +43,8 @@ public class EmployeeService {
 	private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 	@Autowired
 	private JwtRepository jwtRepository;
+	@Autowired
+	private RoleRepository roleRepository;
 
 	public ResponseEntity<UserResponse> teacherRegisteration(EmployeeRegisterRequest registerRequest) {
 		Employee existedEmployee = employeeRepository.findByEmail(registerRequest.getEmail());
@@ -50,11 +53,11 @@ public class EmployeeService {
 			return ResponseEntity.status(HttpStatus.CONFLICT)
 					.body(new UserResponse("Employee already exists ", false, HttpStatus.CONFLICT.value()));
 		}
-
-		Employee employee = Employee.builder().name(registerRequest.getName()).email(registerRequest.getEmail())
-				.password(encoder.encode(registerRequest.getPassword())).aadharCardNo(registerRequest.getAadharCardNo())
-				.contactNumber(registerRequest.getContactNumber()).qualification(registerRequest.getQualification())
-				.salary(registerRequest.getSalary()).role(Role.EMPLOYEE).build();
+         
+		
+		Role role = roleRepository.findByRole("EMPLOYEE");
+		Employee employee = Employee.builder().email(registerRequest.getEmail())
+				.password(encoder.encode(registerRequest.getPassword())).role(role).build();
 
 		employeeRepository.save(employee);
 		log.info("Employee register successfully with email:{}", registerRequest.getEmail());
@@ -65,12 +68,13 @@ public class EmployeeService {
 
 	public ResponseEntity<AuthResponse> teacherLogin(EmployeeLoginRequest loginRequest) {
 		Employee employee = employeeRepository.findByEmail(loginRequest.getEmail());
+		Role role= roleRepository.findByRole("Employee");
 		String token = null;
 		if (employee != null && employee.getPassword().equals(loginRequest.getPassword())) {
 			UserDetails details = customDetailsService.loadUserByUsername(employee.getEmail());
-			token = helper.generateToken(details, employee.getPassword(), Role.EMPLOYEE);
+			token = helper.generateToken(details, employee.getPassword(),role);
 			String existingtoken = helper.getOrGenerateToken(employee.getEmail(), employee.getPassword(),
-					Role.EMPLOYEE);
+					role);
 
 			Claims claims1 = JwtHelper.decodeJwt(existingtoken);
 			Claims claims2 = JwtHelper.decodeJwt(token);
