@@ -53,9 +53,8 @@ public class EmployeeService {
 			return ResponseEntity.status(HttpStatus.CONFLICT)
 					.body(new UserResponse("Employee already exists ", false, HttpStatus.CONFLICT.value()));
 		}
-         
-		
-		Role role = roleRepository.findByRole("EMPLOYEE");
+
+		Role role = roleRepository.findByRole(registerRequest.getRole());
 		Employee employee = Employee.builder().email(registerRequest.getEmail())
 				.password(encoder.encode(registerRequest.getPassword())).role(role).build();
 
@@ -68,13 +67,12 @@ public class EmployeeService {
 
 	public ResponseEntity<AuthResponse> teacherLogin(EmployeeLoginRequest loginRequest) {
 		Employee employee = employeeRepository.findByEmail(loginRequest.getEmail());
-		Role role= roleRepository.findByRole("Employee");
+		Role role = roleRepository.findByRole(loginRequest.getRole());
 		String token = null;
 		if (employee != null && employee.getPassword().equals(loginRequest.getPassword())) {
 			UserDetails details = customDetailsService.loadUserByUsername(employee.getEmail());
-			token = helper.generateToken(details, employee.getPassword(),role);
-			String existingtoken = helper.getOrGenerateToken(employee.getEmail(), employee.getPassword(),
-					role);
+			token = helper.generateToken(details, employee.getPassword(), role);
+			String existingtoken = helper.getOrGenerateToken(employee.getEmail(), employee.getPassword(), role);
 
 			Claims claims1 = JwtHelper.decodeJwt(existingtoken);
 			Claims claims2 = JwtHelper.decodeJwt(token);
