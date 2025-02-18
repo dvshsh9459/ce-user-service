@@ -65,9 +65,6 @@ public class StudentService {
 				.password(encoder.encode(regRequest.getPassword())).role(role).build();
 
 
-		Student student = Student.builder().email(regRequest.getEmail()).aadharCardNo(regRequest.getAadharCardNo())
-				.qualification(regRequest.getQualification()).role(Role.STUDENT).build();
-
 		System.out.println(student);
 
 		studentRepository.save(student);
