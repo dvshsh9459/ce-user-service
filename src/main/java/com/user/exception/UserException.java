@@ -1,4 +1,4 @@
-package com.user.exceptionhandler;
+package com.user.exception;
 
 public class UserException extends RuntimeException {
 	
