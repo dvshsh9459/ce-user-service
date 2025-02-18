@@ -60,7 +60,7 @@ public class StudentService {
 		}
 
       
-		Role role = roleRepository.findByRole("STUDENT");
+		Role role = roleRepository.findByRole(regRequest.getRole());
 		Student student = Student.builder().email(regRequest.getEmail())
 				.password(encoder.encode(regRequest.getPassword())).role(role).build();
 
@@ -75,11 +75,12 @@ public class StudentService {
 
 	public ResponseEntity<AuthResponse> studentLogin(StudentLoginRequest loginRequest) {
 		Student student = studentRepository.findByEmail(loginRequest.getEmail());
+		Role role= roleRepository.findByRole(loginRequest.getRole());
 		String token = null;
 		if (student != null && encoder.matches(loginRequest.getPassword(), student.getPassword())) {
 			UserDetails details = customDetailsService.loadUserByUsername(student.getEmail());
-			token = helper.generateToken(details, student.getPassword(),student.getRole());
-			String existingtoken = helper.getOrGenerateToken(student.getEmail(), student.getPassword(), student.getRole());
+			token = helper.generateToken(details, student.getPassword(),role);
+			String existingtoken = helper.getOrGenerateToken(student.getEmail(), student.getPassword(), role);
 
 			Claims claims1 = JwtHelper.decodeJwt(existingtoken);
 			Claims claims2 = JwtHelper.decodeJwt(token);
