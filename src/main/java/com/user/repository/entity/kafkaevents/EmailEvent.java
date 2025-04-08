@@ -1,15 +1,13 @@
-package com.user.controller.request;
+package com.user.repository.entity.kafkaevents;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
-public class StudentRegRequest {
-
+@AllArgsConstructor
+public class EmailEvent {
 	private String email;
-	private String password;
-	private String role;
+	private String verificationCode;
 }

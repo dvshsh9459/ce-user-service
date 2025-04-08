@@ -1,16 +1,17 @@
 package com.user.service;
 
+import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.UserDetails;
+
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.user.config.CustomDetailsService;
 import com.user.config.JwtHelper;
 import com.user.controller.request.EmployeeLoginRequest;
 import com.user.controller.request.EmployeeRegisterRequest;
@@ -21,30 +22,36 @@ import com.user.controller.response.AuthResponse;
 import com.user.controller.response.ForgetPassResponse;
 import com.user.controller.response.UserResponse;
 import com.user.repository.EmployeeRepository;
-import com.user.repository.JwtRepository;
-import com.user.repository.RoleRepository;
-import com.user.repository.entity.Employee;
-import com.user.repository.entity.JwtToken;
-import com.user.repository.entity.Role;
 
-import io.jsonwebtoken.Claims;
+import com.user.repository.RoleRepository;
+
+import com.user.repository.entity.Employee;
+
+import com.user.repository.entity.Role;
+import com.user.service.kafkaeventservice.EmailProducer;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
 public class EmployeeService {
-	@Autowired
+
+	private final JwtHelper helper;
+	private RoleRepository roleRepository;
+	private Random random = new Random();
+
 	private EmployeeRepository employeeRepository;
-	@Autowired
-	private JwtHelper helper;
-	@Autowired
-	private CustomDetailsService customDetailsService;
+	private EmailProducer emailProducer;
+
+	public EmployeeService(JwtHelper helper, EmployeeRepository employeeRepository, RoleRepository roleRepository,
+			EmailProducer emailProducer) {
+		this.helper = helper;
+		this.roleRepository = roleRepository;
+		this.employeeRepository = employeeRepository;
+		this.emailProducer = emailProducer;
+	}
 
 	private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-	@Autowired
-	private JwtRepository jwtRepository;
-	@Autowired
-	private RoleRepository roleRepository;
 
 	public ResponseEntity<UserResponse> teacherRegisteration(EmployeeRegisterRequest registerRequest) {
 		Employee existedEmployee = employeeRepository.findByEmail(registerRequest.getEmail());
@@ -54,39 +61,76 @@ public class EmployeeService {
 					.body(new UserResponse("Employee already exists ", false, HttpStatus.CONFLICT.value()));
 		}
 
-		Role role = roleRepository.findByRole(registerRequest.getRole());
+		Role role = roleRepository.findByRole(registerRequest.getRoles());
+		if (role == null) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+					.body(new UserResponse("Role not found", false, HttpStatus.BAD_REQUEST.value()));
+		}
+		Set<Role> roles = new HashSet<>();
+		roles.add(role);
+		String verificationCode = GenerateVerification.generateVerificationCode();
+
 		Employee employee = Employee.builder().email(registerRequest.getEmail())
-				.password(encoder.encode(registerRequest.getPassword())).role(role).build();
+				.password(encoder.encode(registerRequest.getPassword())).roles(roles).isVerified(false)
+				.verificationCode(verificationCode).build();
 
 		employeeRepository.save(employee);
+		emailProducer.sendVerificationEmail(registerRequest.getEmail(), verificationCode);
 		log.info("Employee register successfully with email:{}", registerRequest.getEmail());
 		return ResponseEntity.status(HttpStatus.OK)
-				.body(new UserResponse("Employee register successfully ", true, HttpStatus.OK.value()));
-
+				.body(new UserResponse("Verification code sent to email. Please verify.", true, HttpStatus.OK.value()));
 	}
 
-	public ResponseEntity<AuthResponse> teacherLogin(EmployeeLoginRequest loginRequest) {
-		Employee employee = employeeRepository.findByEmail(loginRequest.getEmail());
-		Role role = roleRepository.findByRole(loginRequest.getRole());
-		String token = null;
-		if (employee != null && employee.getPassword().equals(loginRequest.getPassword())) {
-			UserDetails details = customDetailsService.loadUserByUsername(employee.getEmail());
-			token = helper.generateToken(details, employee.getPassword(), role);
-			String existingtoken = helper.getOrGenerateToken(employee.getEmail(), employee.getPassword(), role);
-
-			Claims claims1 = JwtHelper.decodeJwt(existingtoken);
-			Claims claims2 = JwtHelper.decodeJwt(token);
-			System.out.println(token);
-			if (claims1.getSubject().equals(claims2.getSubject())) {
-				log.info("Employee login successfully with email:{}", loginRequest.getEmail());
-				return ResponseEntity.status(HttpStatus.OK)
-						.body(new AuthResponse("Employee login successfully", true, HttpStatus.OK.value(), token));
-			}
+	public ResponseEntity<UserResponse> verifyStudent(String email, String code) {
+		Employee employee = employeeRepository.findByEmail(email);
+		if (employee == null) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND)
+					.body(new UserResponse("Student not found", false, HttpStatus.NOT_FOUND.value()));
 		}
-		log.warn("Employee login failed with email:{}", loginRequest.getEmail());
-		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthResponse(
-				"Employee login failed ! invalid email and password", false, HttpStatus.UNAUTHORIZED.value(), token));
 
+		if (employee.getVerificationCode().equals(code)) {
+			employee.setVerified(true);
+			employee.setVerificationCode(null); // Remove code after verification
+			employeeRepository.save(employee);
+			return ResponseEntity.status(HttpStatus.OK)
+					.body(new UserResponse("Email verified successfully!", true, HttpStatus.OK.value()));
+		} else {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+					.body(new UserResponse("Invalid verification code", false, HttpStatus.BAD_REQUEST.value()));
+		}
+	}
+
+	public ResponseEntity<AuthResponse> employeeLogin(EmployeeLoginRequest loginRequest) {
+		Employee employee = employeeRepository.findByEmail(loginRequest.getEmail());
+		String token = null;
+		if (employee == null) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+					new AuthResponse("User Not Found With email ", false, HttpStatus.NOT_FOUND.value(), token, null));
+
+		}
+		boolean hasRole = employee.getRoles().stream()
+				.anyMatch(r -> r.getRole().equalsIgnoreCase(loginRequest.getRole()));
+
+		if (!hasRole) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthResponse(
+					"User does not have the specified role", false, HttpStatus.UNAUTHORIZED.value(), token, null));
+		}
+		if (encoder.matches(loginRequest.getPassword(), employee.getPassword())) {
+			// Generate token only with email
+			token = helper.generateToken(employee.getEmail(), employee.getRoles());
+			Date expiry = helper.getExpirationDate(token);
+
+			log.info("Employee login successfully with email: {}", loginRequest.getEmail());
+
+			return ResponseEntity.status(HttpStatus.OK).body(new AuthResponse("Employee login successfully", true,
+					HttpStatus.OK.value(), token, expiry.toString()));
+		}
+
+		log.warn("Employee login failed with email: {}", loginRequest.getEmail());
+
+		return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+				.body(new AuthResponse("Employee login failed! Invalid email or password", false,
+						HttpStatus.UNAUTHORIZED.value(), null, null));
 	}
 
 	public List<Employee> employees() {
@@ -140,17 +184,15 @@ public class EmployeeService {
 
 		}
 		String AB = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-		Random rnd = new Random();
+
 		int length = 10;
 		StringBuilder sb = new StringBuilder(length);
 		for (int i = 0; i < length; i++) {
-			sb.append(AB.charAt(rnd.nextInt(AB.length())));
+			sb.append(AB.charAt(random.nextInt(AB.length())));
 		}
-		System.out.println(sb.toString());
+
 		employee.setPassword(encoder.encode(sb));
 		employeeRepository.save(employee);
-		JwtToken jwtToken = jwtRepository.findByEmail(forgetPassword.getEmail());
-		jwtRepository.delete(jwtToken);
 		log.info("Password reset Successsfully with email:{}", forgetPassword.getEmail());
 		return ResponseEntity.status(HttpStatus.OK).body(new ForgetPassResponse("Password Forget Successfully",
 				"Login Password is " + sb.toString(), HttpStatus.OK.value()));

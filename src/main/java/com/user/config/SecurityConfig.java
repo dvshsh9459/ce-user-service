@@ -1,6 +1,5 @@
 package com.user.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -17,80 +16,32 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class SecurityConfig {
 
-	@Autowired
 	private JwtAuthConfig authenticationConfig;
-	@Autowired
+
 	private JwtAuthFilter authenticationFilter;
-	@Autowired
+
 	private CustomDetailsService customUserDetailsService;
+
+	public SecurityConfig(JwtAuthConfig authenticationConfig, JwtAuthFilter authenticationFilter,
+			CustomDetailsService customUserDetailsService) {
+		this.authenticationConfig = authenticationConfig;
+		this.authenticationFilter = authenticationFilter;
+		this.customUserDetailsService = customUserDetailsService;
+	}
 
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		http.csrf(csrf -> csrf.disable()).authorizeHttpRequests(requests -> requests
 
-				.requestMatchers("/student/registeration", "/student/login", "/admin/login", "/employee/registeration",
-						"/employee/forgetPassword", "/student/forgetPassword", "/employee/login", "/v3/api-docs",
-						"/configuration/ui", "/swagger-resources/**", "/configuration/security", "/swagger-ui.html",
-						"/webjars/**", "/swagger-ui/**")
+				.requestMatchers("/student/registeration", "/student/verify", "/student/login", "/admin/login",
+						"/employee/registeration", "/employee/forgetPassword", "/student/forgetPassword",
+						"/employee/login", "/v3/api-docs", "/configuration/ui", "/swagger-resources/**",
+						"/configuration/security", "/swagger-ui.html", "/webjars/**", "/swagger-ui/**")
 				.permitAll().requestMatchers("/employee/remove", "/student/remove", "/employee/getAll")
 				.hasAnyAuthority("ADMIN").requestMatchers("/student/getAll").hasAnyAuthority("ADMIN", "EMPLOYEE")
 				.requestMatchers("/student/updatePassword").hasAnyAuthority("STUDENT")
 				.requestMatchers("/employee/updatePassword").hasAnyAuthority("EMPLOYEE")
 
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
 				.anyRequest().authenticated())
 				.exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationConfig))
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
