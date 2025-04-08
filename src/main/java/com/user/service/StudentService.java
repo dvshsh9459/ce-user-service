@@ -1,16 +1,18 @@
 package com.user.service;
 
+import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.UserDetails;
+
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
 import org.springframework.stereotype.Service;
 
-import com.user.config.CustomDetailsService;
 import com.user.config.JwtHelper;
 import com.user.controller.request.ForgetPasswordRequest;
 import com.user.controller.request.RemoveStuRequest;
@@ -20,80 +22,125 @@ import com.user.controller.request.UpdatePasswordReq;
 import com.user.controller.response.AuthResponse;
 import com.user.controller.response.ForgetPassResponse;
 import com.user.controller.response.UserResponse;
-import com.user.repository.JwtRepository;
+
 import com.user.repository.RoleRepository;
 import com.user.repository.StudentRepository;
-
-import com.user.repository.entity.JwtToken;
 import com.user.repository.entity.Role;
 import com.user.repository.entity.Student;
 
-import io.jsonwebtoken.Claims;
+import com.user.service.kafkaeventservice.EmailProducer;
+import com.user.service.kafkaeventservice.LoginEventProducer;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
 public class StudentService {
 
-	@Autowired
-	private StudentRepository studentRepository;
-	@Autowired
-	private JwtHelper helper;
-	@Autowired
-	private CustomDetailsService customDetailsService;
-
-
-	private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-	@Autowired
-	private JwtRepository jwtRepository;
-
-	@Autowired
+	private final JwtHelper helper;
 	private RoleRepository roleRepository;
+
+	private StudentRepository studentRepository;
+	private EmailProducer emailProducer;
+	private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+
+	private LoginEventProducer loginEventProducer;
+	private Random random = new Random();
+	public StudentService(JwtHelper helper, StudentRepository studentRepository, RoleRepository roleRepository,
+			EmailProducer emailProducer, LoginEventProducer loginEventProducer) {
+		this.helper = helper;
+		this.roleRepository = roleRepository;
+		this.studentRepository = studentRepository;
+		this.emailProducer = emailProducer;
+		this.loginEventProducer = loginEventProducer;
+
+	}
 
 	public ResponseEntity<UserResponse> studentRegistration(StudentRegRequest regRequest) {
 		// Check if the student already exists by email
 		Student existingStudent = studentRepository.findByEmail(regRequest.getEmail());
 		if (existingStudent != null) {
-			log.warn("Student registration attempt failed: User already exists with email {}", regRequest.getEmail());
 			return ResponseEntity.status(HttpStatus.CONFLICT)
 					.body(new UserResponse("Student already exists", false, HttpStatus.CONFLICT.value()));
 		}
 
-      
+		// Check if role exists
 		Role role = roleRepository.findByRole(regRequest.getRole());
+		if (role == null) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+					.body(new UserResponse("Role not found", false, HttpStatus.BAD_REQUEST.value()));
+		}
+
+		Set<Role> roles = new HashSet<>();
+		roles.add(role);
+
+		// Generate a random verification code
+		String verificationCode = GenerateVerification.generateVerificationCode();
+
+		// Create student (not yet verified)
 		Student student = Student.builder().email(regRequest.getEmail())
-				.password(encoder.encode(regRequest.getPassword())).role(role).build();
-
-
-		System.out.println(student);
+				.password(encoder.encode(regRequest.getPassword())).roles(roles).verificationCode(verificationCode)
+				.isVerified(false) // Initially false
+				.build();
 
 		studentRepository.save(student);
-		log.info("Student register Successfully with email {}", regRequest.getEmail());
+		emailProducer.sendVerificationEmail(regRequest.getEmail(), verificationCode);
 		return ResponseEntity.status(HttpStatus.OK)
-				.body(new UserResponse("Student registered successfully", true, HttpStatus.OK.value()));
+				.body(new UserResponse("Verification code sent to email. Please verify.", true, HttpStatus.OK.value()));
+	}
+	
+	
+
+	// Verify the student's email
+	public ResponseEntity<UserResponse> verifyStudent(String email, String code) {
+		Student student = studentRepository.findByEmail(email);
+		if (student == null) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND)
+					.body(new UserResponse("Student not found", false, HttpStatus.NOT_FOUND.value()));
+		}
+
+		if (student.getVerificationCode().equals(code)) {
+			student.setVerified(true);
+			student.setVerificationCode(null); // Remove code after verification
+			studentRepository.save(student);
+			return ResponseEntity.status(HttpStatus.OK)
+					.body(new UserResponse("Email verified successfully!", true, HttpStatus.OK.value()));
+		} else {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+					.body(new UserResponse("Invalid verification code", false, HttpStatus.BAD_REQUEST.value()));
+		}
 	}
 
 	public ResponseEntity<AuthResponse> studentLogin(StudentLoginRequest loginRequest) {
 		Student student = studentRepository.findByEmail(loginRequest.getEmail());
-		Role role= roleRepository.findByRole(loginRequest.getRole());
 		String token = null;
-		if (student != null && encoder.matches(loginRequest.getPassword(), student.getPassword())) {
-			UserDetails details = customDetailsService.loadUserByUsername(student.getEmail());
-			token = helper.generateToken(details, student.getPassword(),role);
-			String existingtoken = helper.getOrGenerateToken(student.getEmail(), student.getPassword(), role);
-
-			Claims claims1 = JwtHelper.decodeJwt(existingtoken);
-			Claims claims2 = JwtHelper.decodeJwt(token);
-			System.out.println(token);
-			if (claims1.getSubject().equals(claims2.getSubject())) {
-				log.info("Student Login Successfully With Email:{}", loginRequest.getEmail());
-				return ResponseEntity.status(HttpStatus.OK)
-						.body(new AuthResponse("Student login Successfully", true, HttpStatus.OK.value(), token));
-			}
+		if (student == null) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+					new AuthResponse("User Not Found With email {}", false, HttpStatus.NOT_FOUND.value(), token, null));
 		}
-		log.warn("Login attempt failed: Invalid email or password for email {}", loginRequest.getEmail());
+		boolean hasRole = student.getRoles().stream()
+				.anyMatch(r -> r.getRole().equalsIgnoreCase(loginRequest.getRole()));
+
+		if (!hasRole) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthResponse(
+					"User does not have the specified role", false, HttpStatus.UNAUTHORIZED.value(), token, null));
+		}
+
+		if (encoder.matches(loginRequest.getPassword(), student.getPassword())) {
+			// Generate token only with email
+			token = helper.generateToken(student.getEmail(), student.getRoles());
+			Date expiry = helper.getExpirationDate(token);
+
+			log.info("User login successfully with email: {}", loginRequest.getEmail());
+
+			return ResponseEntity.status(HttpStatus.OK).body(
+					new AuthResponse("User login successfully", true, HttpStatus.OK.value(), token, expiry.toString()));
+		}
+
+		log.warn("User login failed with email: {}", loginRequest.getEmail());
+
 		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new AuthResponse(
-				"Login failed ! Inavlid email or password", false, HttpStatus.UNAUTHORIZED.value(), token));
+				"User login failed! Invalid email or password", false, HttpStatus.UNAUTHORIZED.value(), null, null));
 	}
 
 	public List<Student> getAllStudents() {
@@ -109,9 +156,9 @@ public class StudentService {
 		}
 
 		studentRepository.delete(student);
-		log.info("Student removed successfully with email:{}", removeStuRequest.getEmail());
+		log.info("User removed successfully with email:{}", removeStuRequest.getEmail());
 		return ResponseEntity.status(HttpStatus.OK)
-				.body(new UserResponse("Student Removed Successfully", true, HttpStatus.OK.value()));
+				.body(new UserResponse("User Removed Successfully", true, HttpStatus.OK.value()));
 
 	}
 
@@ -141,23 +188,20 @@ public class StudentService {
 	public ResponseEntity<ForgetPassResponse> forgetPassword(ForgetPasswordRequest forgetPassword) {
 		Student student = studentRepository.findByEmail(forgetPassword.getEmail());
 		if (student == null) {
-			log.warn("Password reset attempt failed: No employee found with email {}", forgetPassword.getEmail());
+			log.warn("Password reset attempt failed: No User found with email {}", forgetPassword.getEmail());
 			return ResponseEntity.status(HttpStatus.NOT_FOUND)
-					.body(new ForgetPassResponse("Student Not Found ", " ", HttpStatus.NOT_FOUND.value()));
+					.body(new ForgetPassResponse("User Not Found ", " ", HttpStatus.NOT_FOUND.value()));
 
 		}
 		String pass = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-		Random rnd = new Random();
+
 		int length = 10;
 		StringBuilder sb = new StringBuilder(length);
 		for (int i = 0; i < length; i++) {
-			sb.append(pass.charAt(rnd.nextInt(pass.length())));
+			sb.append(pass.charAt(random.nextInt(pass.length())));
 		}
-		System.out.println(sb.toString());
 		student.setPassword(encoder.encode(sb));
 		studentRepository.save(student);
-		JwtToken jwtToken = jwtRepository.findByEmail(forgetPassword.getEmail());
-		jwtRepository.delete(jwtToken);
 		log.info("Password reset Successsfully with email:{}", forgetPassword.getEmail());
 		return ResponseEntity.status(HttpStatus.OK).body(new ForgetPassResponse("Password Forget Successfully",
 				"Password For Login is " + sb.toString(), HttpStatus.OK.value()));

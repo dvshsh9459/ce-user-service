@@ -1,7 +1,9 @@
 package com.user.repository.entity;
 
 import java.util.Collection;
-import java.util.List;
+
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -9,17 +11,15 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
-
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
-
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
@@ -50,16 +50,24 @@ public class User implements UserDetails {
 	private String email;
 	@NotEmpty(message = "Password Must Not Be Empty")
 	private String password;
-	@OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
-	private JwtToken jwtToken;
-	@ManyToOne
-	@JoinColumn(name = "role_id", nullable = false)
-	private Role role;
+	private String verificationCode;
+	private boolean isVerified;
+
+//	@ManyToOne
+//	@JoinColumn(name = "role_id", nullable = false)
+//	private Role role;
+//	  private boolean isAdmin = false; // Default is false
+
+	@ManyToMany(fetch = FetchType.EAGER)
+	@JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
+	private Set<Role> roles;
 
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {
 		// TODO Auto-generated method stub
-		return List.of(new SimpleGrantedAuthority(role.getRole()));
+		return roles.stream().map(role -> new SimpleGrantedAuthority(role.getRole())) // Convert each Role to
+																						// SimpleGrantedAuthority
+				.collect(Collectors.toList());
 	}
 
 	@Override

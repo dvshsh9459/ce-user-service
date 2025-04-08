@@ -2,7 +2,6 @@ package com.user.controller;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,8 +27,11 @@ import com.user.service.EmployeeService;
 @RequestMapping("/employee")
 public class EmployeeController {
 
-	@Autowired
 	private EmployeeService employeeService;
+
+	public EmployeeController(EmployeeService employeeService) {
+		this.employeeService = employeeService;
+	}
 
 	@PostMapping("/registeration")
 	public ResponseEntity<UserResponse> teacherRegister(@RequestBody EmployeeRegisterRequest registerRequest) {
@@ -38,7 +40,7 @@ public class EmployeeController {
 
 	@GetMapping("/login")
 	public ResponseEntity<AuthResponse> teacherLogin(@RequestBody EmployeeLoginRequest loginRequest) {
-		return employeeService.teacherLogin(loginRequest);
+		return employeeService.employeeLogin(loginRequest);
 	}
 
 	@GetMapping("/getAll")
